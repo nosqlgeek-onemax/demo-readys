@@ -8,6 +8,8 @@ import io.ktor.server.request.*
 
 fun Application.configureRouting() {
 
+    println("Configuring routing ...")
+
     // Starting point for a Ktor app:
     routing {
         get("/") {
