@@ -6,13 +6,6 @@ import kotlin.test.*
 import redis.clients.jedis.Jedis
 import java.util.*
 
-
-/**
- * # V.) Let's learn some Kotlin
- *
- * 1. This test case doesn't use a JUnit dependency. Kotlin abstracts this away.
- * 2. JUnit seems to be still used behind the scenes: https://kotlinlang.org/docs/jvm-test-using-junit.html
- */
 class RepoTest {
 
     val cfg = DBConfig()
@@ -85,5 +78,64 @@ class RepoTest {
 
     }
 
+    @Test
+    fun getPersonRecursive() {
 
+        println("-- testGetPersonRecursive")
+
+        val david = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
+        val elena = Person("Elena", "Kolevska", "elena.kolevska@redis.com", "elena_kolevska", Date(0))
+        val kurt = Person("Kurt", "Moeller", "kurt.moellera@redis.com", "kurtfm", Date(0))
+
+        //Create a circular dependency
+        david.friends.add(elena)
+        elena.friends.add(kurt)
+        kurt.friends.add(david)
+
+        //Add persons
+        val repo = Repo()
+        repo.addPerson(david)
+        repo.addPerson(elena)
+        repo.addPerson(kurt)
+
+        //Get a person - This should not cause a Stack Overflow
+        val nosqlgeek = repo.getPerson("nosqlgeek")
+        val kurtfm = nosqlgeek.friends.find { it.lastname == "Kolevska" }?.friends?.find { it.firstname == "Kurt" }
+        println("The friend of Elena is: %s".format(kurtfm?.firstname))
+        assertEquals("Kurt", kurtfm?.firstname)
+
+        val again = kurtfm?.friends?.take(1)?.get(0)
+        println("The friend of Kurt is: %s".format(again?.firstname))
+        assertEquals("David", again?.firstname)
+    }
+
+    @Test
+    fun delPerson() {
+
+        println("-- delPerson")
+
+        val repo = Repo()
+        val david = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
+        repo.addPerson(david)
+
+        val deleted = repo.delPerson(david.handle)
+        println("deleted = %b".format(deleted))
+        assertEquals(true, deleted)
+    }
+
+
+    @Test
+    fun searchPerson() {
+
+        println("-- searchPerson")
+
+        val repo = Repo()
+        val kurt = Person("Kurt", "Moeller", "kurt.moellera@redis.com", "kurtfm", Date(0))
+        repo.addPerson(kurt)
+
+        val result = repo.searchPersons("Kurt").take(1).get(0)
+
+        assertEquals(kurt.handle, result.handle)
+        println("result = %s".format(result.toString()))
+    }
 }

@@ -15,7 +15,7 @@ import java.util.Date
  * Here an example how to use a companion to implement a helper function that might be useful outside of the context
  * of the state of an instance of a Post.
  *
- * 2. Non-nullable objects
+ * 2. Non-nullable types
  *
  * Kotlin tries to avoid null pointer exceptions. So there are nullable and non-nullable types. The default is
  * non-nullable. If you want to be able to assign null, then you need to call it out when declaring your variable.

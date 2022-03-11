@@ -24,6 +24,9 @@ import java.util.logging.Level.*
  *    1. Kotlin supports explicit type casting by using the 'as' operator.
  *    2. You can also use implicit type casting by checking in an if condition via the 'is' operator, then
  *       the checked variable will be automatically casted within the if block.
+ *    3. Look at the key generator. It's possible to pass null as a default value, which means that the variable is
+ *       declared in the function signature, but it is not mandatory to pass it. This would end in multiple methods with
+ *       the same name, but slightly different argument lists in Java.
  *
  * ## I.) Let's learn about RedisJSON!
  *
@@ -46,12 +49,36 @@ class Repo : IRepo {
 
     var redis : UnifiedJedis
 
+    /**
+     * Let's initialize the repo by creating some indexes
+     */
     init {
         //Establish a database connection
         cfg = DBConfig()
         redis = JedisPooled(cfg.host, cfg.port, cfg.user, cfg.password)
-        logger.log(INFO, "index created = %b".format(createPersonIndex()))
-        logger.log(INFO, "index created = %b".format(createPostIndex()))
+        logger.log(INFO, "Person index created = %b".format(createPersonIndex()))
+        logger.log(INFO, "Post index created = %b".format(createPostIndex()))
+    }
+
+
+    /**
+     * Everything in Redis has a key. So let's define some key generators.
+     */
+    private fun key(prefix : String, id: String?) : String {
+
+            //Ignore the id and just return the prefix. This is different from passing an empty String
+            if (id == null)
+                return prefix
+            else
+                return "%s:%s".format(prefix, id)
+    }
+
+    private fun personKey(handle: String? = null) : String {
+        return key("person", handle)
+    }
+
+    private fun postKey(id: String? = null) : String {
+        return key("post", id)
     }
 
 
@@ -82,13 +109,13 @@ class Repo : IRepo {
     private fun createPersonIndex() : Boolean {
 
         val schema = Schema()
-            .addTextField("$.firstname AS firstname", 1.0)
-            .addTextField("$.lastname AS lastname", 1.0)
-            .addTagField("$.handle AS handle")
-            .addTagField("$.email AS email")
-            .addNumericField("$.bday AS bday")
+            .addTextField("$.firstname", 1.0)
+            .addTextField("$.lastname", 1.0)
+            .addTagField("$.handle")
+            .addTagField("$.email")
+            .addNumericField("$.bday")
 
-        return createIdx("idx:person", IndexDefinition(JSON).setPrefixes("person:"), schema)
+        return createIdx("idx:%s".format(personKey()), IndexDefinition(JSON).setPrefixes(personKey("")), schema)
     }
 
     /**
@@ -101,54 +128,95 @@ class Repo : IRepo {
             .addTextField("$.text AS text", 1.0)
 
 
-        return createIdx("idx:person", IndexDefinition(JSON).setPrefixes("post:"), schema)
+        return createIdx("idx:%s".format(postKey()), IndexDefinition(JSON).setPrefixes(postKey("")), schema)
 
     }
 
+
+    /**
+     * Adds a person without checking if referenced persons are in the database
+     */
     override fun addPerson(person: Person): Person {
 
         //Hint: Using Path2.ROOT_PATH skips the built-in serialization and gives us more control
-        redis.jsonSet("person:".plus(person.handle), Path2.ROOT_PATH, gson.toJson(person))
+        redis.jsonSet(personKey(person.handle), Path2.ROOT_PATH, gson.toJson(person))
         return person
     }
 
+    /**
+     * Gets a person and all the associated ones
+     */
     override fun getPerson(handle: String): Person {
 
-        return getPerson(handle, Person.NOBODY)
-
+        return getPerson(handle, mutableSetOf())
     }
 
+    /**
+     * Recursive function that traverses the tree of friends
+     */
+    fun getPerson(handle: String, processedPersons : MutableSet<Person>) : Person {
 
-    fun getPerson(handle: String, parent : Person) : Person {
-
-        val result = redis.jsonGet("person:".plus(handle), Path2.ROOT_PATH)
+        val result = redis.jsonGet(personKey(handle), Path2.ROOT_PATH)
 
         //Jedis returns an instance of org.json.JSONArray, but I want to have Gson array
         val personJson = responseHelper.jsonToJson(result as JSONArray)[0]
         var person = g.fromJson(personJson, Person::class.java)
 
-        //Recursive call
-        personJson.asJsonObject.get("friends").asJsonArray.forEach{
-            val friendHandle = it.asString
+        //Remember persons that were already processed, this allows us to terminate the recursion
+        processedPersons.add(person)
 
-            if (friendHandle == parent.handle) {
-                person.friends.add(parent)
-            } else {
-                val friend = getPerson(friendHandle, person)
-                person.friends.add(friend)
+        //Add all the friends, and the friends of the friends and so on
+        personJson.asJsonObject.get("friends").asJsonArray.forEach{
+
+            //The handle of the friend
+            val friendHandle = it.asString
+            var friend = processedPersons.find { it.handle == friendHandle  }
+
+            //Recursion
+            if (friend == null) {
+                friend = getPerson(friendHandle,processedPersons)
+                processedPersons.add(friend)
             }
+
+            person.friends.add(friend)
         }
 
         return person
 
     }
 
+    /**
+     * Simply deletes a person
+     */
     override fun delPerson(handle: String): Boolean {
-        TODO("Not yet implemented")
+
+        return (redis.jsonDel(personKey(handle)) == 1L)
     }
 
+    /**
+     * The search query needs to follow the RediSearch query syntax, e.g. '@$.firstname:Kurt'.
+     *
+     * If no field is specified, then RediSearch will search across the text fields. The 'firstname' field is indexed
+     * as text, which means that the queries '@$.firstname:Kurt' and 'Kurt' return the same result.
+     */
     override fun searchPersons(query: String): Set<Person> {
-        TODO("Not yet implemented")
+
+        //Simple query without sorting
+        val q = Query(query)
+        val docs = redis.ftSearch("idx:%s".format(personKey()), q)
+        val result = responseHelper.searchResultToJson(docs)
+
+        val persons = mutableSetOf<Person>()
+
+        result.getAsJsonArray("docs").forEach{
+            val json = it.asJsonObject.get("value").asJsonObject
+            val handle = json.get("handle").asString
+
+            //Get person does resolve the references to friends
+            persons.add(getPerson(handle))
+        }
+
+        return persons
     }
 
     override fun addPost(post: Post): Post {

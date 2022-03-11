@@ -30,8 +30,6 @@ import java.util.Date
  *
  * It's possible to set default values if a property isn't passed.
  *
- * 5. An empty person (nobody) is a person without specific values set, we can use it instead of making person nullable
- *
  */
 data class Person(val firstname: String,
                   val lastname: String,
@@ -40,10 +38,4 @@ data class Person(val firstname: String,
                   val bday: Date,
                   val friends : MutableSet<Person> = mutableSetOf(),
                   val posts : MutableSet<Post> = mutableSetOf()
-) {
-
-    companion object {
-
-        val NOBODY = Person("","","","", Date(0))
-    }
-}
+)

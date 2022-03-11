@@ -7,12 +7,14 @@ import java.util.Date
 
 
 /**
- * ## Let's learn some Kotlin!
+ * ## VI.) Let's learn some Kotlin!
  *
  * 1. Testing
  *
- * You can use several Java test libraries. I'am using JUnit here. Test methods are indeed again expressed
- * as functions that are annotated with @Test.
+ * You can use several Java test libraries. Test methods are indeed again expressed
+ * as functions that are annotated with @Test. This test case doesn't use a JUnit import.
+ * Kotlin abstracts this away. JUnit seems to be still used behind the scenes:
+ * https://kotlinlang.org/docs/jvm-test-using-junit.html
  *
  * 2. Iterations with lambdas
  *
