@@ -13,6 +13,10 @@ import redis.clients.jedis.exceptions.JedisDataException
 import redis.clients.jedis.json.Path2
 import redis.clients.jedis.search.*
 import redis.clients.jedis.search.IndexDefinition.Type.*
+import redis.clients.jedis.search.Schema.TextField
+import redis.clients.jedis.search.FieldName
+import redis.clients.jedis.search.Schema.Field
+import redis.clients.jedis.search.Schema.TagField
 import java.util.logging.Logger
 import java.util.logging.Level.*
 
@@ -109,11 +113,11 @@ class Repo : IRepo {
     private fun createPersonIndex() : Boolean {
 
         val schema = Schema()
-            .addTextField("$.firstname", 1.0)
-            .addTextField("$.lastname", 1.0)
-            .addTagField("$.handle")
-            .addTagField("$.email")
-            .addNumericField("$.bday")
+            .addField(TextField(FieldName("$.firstname", "firstname")))
+            .addField(TextField(FieldName("$.lastname", "lastname")))
+            .addField(TagField(FieldName("$.handle", "handle"),",",false))
+            .addField(TagField(FieldName("$.email", "email"),",",false))
+            .addField(Field(FieldName("$.bday","bday"),Schema.FieldType.NUMERIC,false, false))
 
         return createIdx("idx:%s".format(personKey()), IndexDefinition(JSON).setPrefixes(personKey("")), schema)
     }
