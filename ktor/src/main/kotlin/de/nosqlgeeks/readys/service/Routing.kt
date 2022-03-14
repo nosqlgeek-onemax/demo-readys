@@ -1,6 +1,7 @@
 package de.nosqlgeeks.readys.plugins
 
 import de.nosqlgeeks.readys.service.person
+import de.nosqlgeeks.readys.service.post
 import io.ktor.server.routing.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -13,5 +14,6 @@ fun Application.configureRouting() {
     routing {
         hello()
         person()
+        post()
     }
 }

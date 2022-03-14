@@ -45,6 +45,7 @@ data class Person(var firstname: String,
         val NOBODY = Person("","","","nobody", Date(0), mutableSetOf(), mutableSetOf())
     }
 
+    //-- Overrides
     override fun hashCode(): Int {
         val crc = CRC32()
         crc.update(handle.toByteArray(Charsets.UTF_8))

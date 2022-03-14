@@ -1,6 +1,5 @@
-package de.nosqlgeeks.readys.data
+package de.nosqlgeeks.readys.data.model
 
-import de.nosqlgeeks.readys.data.model.Person
 import de.nosqlgeeks.readys.data.serialize.GsonFactory
 import kotlin.test.*
 import java.util.Date
