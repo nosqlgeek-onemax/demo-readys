@@ -40,6 +40,6 @@ data class Person(var firstname: String,
                   val posts : MutableSet<Post> = mutableSetOf()
 ) {
     companion object {
-        val NOBODY = Person("","","","", Date(0), mutableSetOf(), mutableSetOf())
+        val NOBODY = Person("","","","nobody", Date(0), mutableSetOf(), mutableSetOf())
     }
 }
