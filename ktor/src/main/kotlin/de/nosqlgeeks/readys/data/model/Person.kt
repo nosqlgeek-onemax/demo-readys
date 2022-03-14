@@ -1,6 +1,7 @@
 package de.nosqlgeeks.readys.data.model
 
 import java.util.Date
+import java.util.zip.CRC32
 
 
 /**
@@ -39,7 +40,24 @@ data class Person(var firstname: String,
                   val friends : MutableSet<Person> = mutableSetOf(),
                   val posts : MutableSet<Post> = mutableSetOf()
 ) {
+
     companion object {
         val NOBODY = Person("","","","nobody", Date(0), mutableSetOf(), mutableSetOf())
+    }
+
+    override fun hashCode(): Int {
+        val crc = CRC32()
+        crc.update(handle.toByteArray(Charsets.UTF_8))
+        return (crc.value % Int.MAX_VALUE).toInt()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is Person)
+            return other.handle == handle
+        return false
+    }
+
+    override fun toString(): String {
+        return "%s,%s,%s,%s,%d".format(firstname, lastname, email, handle, bday.time)
     }
 }

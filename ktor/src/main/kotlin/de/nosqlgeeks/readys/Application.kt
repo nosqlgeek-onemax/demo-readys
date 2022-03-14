@@ -34,15 +34,17 @@ import io.ktor.server.plugins.*
  *    application framework. We will cover more about it later.
  * 2. Our application pulls the necessary dependencies in via Maven. We could have used 'Gradle Kotlin', 'Gradle Groovy',
  *    or 'Maven'. The only reason why I decided for Maven is that I am a grumpy old coder ;-).
+ * 3. A 'ktor' application can be extended via modules. We are using the module 'fun Application.configureRouting' here.
+ *    The name doesn't matter. It only matters what it implements. Our routing module configures Application.routing which
+ *    describes its purpose. Other modules are used to call the installation of a plugin (e.g., a content negotiation/
+ *    serialization plugin)
  *
  *
  */
 fun main() {
-
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
-
+    embeddedServer(Netty, port = AppConfig.port, host = AppConfig.host) {
+        //Construct an application by calling
         configureSerialization()
         configureRouting()
-
     }.start(wait = true)
 }

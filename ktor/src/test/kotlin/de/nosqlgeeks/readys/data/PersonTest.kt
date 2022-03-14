@@ -48,7 +48,7 @@ class PersonTest {
 
         val j = GsonFactory.g.toJson(david)
 
-        assertEquals("{\"firstname\":\"David\",\"lastname\":\"Maier\",\"email\":\"david@nosqlgeeks.de\",\"bday\":0,\"friends\":[\"elena_kolevska\"]}", j)
+        assertEquals("{\"handle\":\"nosqlgeek\",\"firstname\":\"David\",\"lastname\":\"Maier\",\"email\":\"david@nosqlgeeks.de\",\"bday\":0,\"friends\":[\"elena_kolevska\"]}", j)
         println(j)
     }
 
