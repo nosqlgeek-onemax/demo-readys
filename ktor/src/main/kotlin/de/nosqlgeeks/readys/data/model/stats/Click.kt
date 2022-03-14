@@ -1,5 +1,5 @@
 package de.nosqlgeeks.readys.data.model.stats
 
-data class Click(val time : Long,
-                 val by : String,
-                 val postId : String)
+data class Click(var time : Long,
+                 var by : String,
+                 var postId : String)

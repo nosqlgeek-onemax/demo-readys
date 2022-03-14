@@ -12,13 +12,13 @@ import java.util.*
  * Deserializes a person JSON object by skipping the references to persons and posts for now.
  * This allows us to resolve them later.
  */
-class PersonEmptyRefDeSerializer : JsonDeserializer<Person> {
+class PersonDeSerializer : JsonDeserializer<Person> {
 
     override fun deserialize(p0: JsonElement?, p1: Type?, p2: JsonDeserializationContext?): Person {
 
         if (p0 is JsonObject) {
 
-            var person = Person(
+            val person = Person(
                 p0.get("firstname").asString,
                 p0.get("lastname").asString,
                 p0.get("email").asString,

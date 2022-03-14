@@ -29,7 +29,7 @@ interface IRepo {
     fun addPost(post : Post) : Post
     fun getPost(id : String) : Post
     fun delPost(id : String) : Boolean
-    fun searchPosts(query : String)
+    fun searchPosts(query : String) : Set<Post>
 
     //Stats
     fun addClick(click : Click) : Click

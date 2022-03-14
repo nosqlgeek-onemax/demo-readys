@@ -31,11 +31,15 @@ import java.util.Date
  * It's possible to set default values if a property isn't passed.
  *
  */
-data class Person(val firstname: String,
-                  val lastname: String,
-                  val email : String,
-                  val handle : String,
-                  val bday: Date,
+data class Person(var firstname: String,
+                  var lastname: String,
+                  var email : String,
+                  var handle : String,
+                  var bday: Date,
                   val friends : MutableSet<Person> = mutableSetOf(),
                   val posts : MutableSet<Post> = mutableSetOf()
-)
+) {
+    companion object {
+        val NOBODY = Person("","","","", Date(0), mutableSetOf(), mutableSetOf())
+    }
+}

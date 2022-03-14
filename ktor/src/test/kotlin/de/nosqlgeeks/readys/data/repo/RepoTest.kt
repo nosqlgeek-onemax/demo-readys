@@ -1,6 +1,7 @@
 package de.nosqlgeeks.readys.data.repo
 
 import de.nosqlgeeks.readys.data.model.Person
+import de.nosqlgeeks.readys.data.model.Post
 import de.nosqlgeeks.readys.data.serialize.GsonFactory
 import kotlin.test.*
 import redis.clients.jedis.Jedis
@@ -137,5 +138,33 @@ class RepoTest {
 
         assertEquals(kurt.handle, result.handle)
         println("result = %s".format(result.toString()))
+    }
+
+    @Test
+    fun searchPost() {
+
+        //Prepare the objects
+        val david = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
+
+        val firstPost = Post(david,Date(),"Kotlin is great, and it gets even better with Redis.")
+        Thread.sleep(100)
+        val secondPost = Post(david,Date(),"Redis with RediSearch and RedisJson provide a ton of development flexibility.")
+
+        assertEquals(2, david.posts.size)
+
+        //Store objects
+        val repo = Repo()
+        repo.addPerson(david)
+        repo.addPost(firstPost)
+        repo.addPost(secondPost)
+
+        //Search the posts by checking if the result also fetched the persons
+        val posts = repo.searchPosts("Redis")
+
+        assertEquals("Kotlin is great, and it gets even better with Redis.",posts.elementAt(0).text)
+        assertEquals("Redis with RediSearch and RedisJson provide a ton of development flexibility.",posts.elementAt(1).text)
+        assertEquals("david@nosqlgeeks.de", posts.elementAt(0).by.email)
+
+        println(posts)
     }
 }

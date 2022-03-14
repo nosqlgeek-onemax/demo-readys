@@ -15,11 +15,11 @@ import java.lang.reflect.Type
  * We are using it here to avoid recursive embeddings of persons (e.g., a person that has a person as a friend that has
  * the same person as a friend). This is solved by only storing the reference to the person in the serialized output.
  */
-class PersonNoNestingSerializer : JsonSerializer<Person> {
+class PersonSerializer : JsonSerializer<Person> {
 
     override fun serialize(p0: Person?, p1: Type?, p2: JsonSerializationContext?): JsonElement {
 
-        var j  = JsonObject()
+        val j  = JsonObject()
 
         if (p0 != null) {
             j.addProperty("handle", p0.handle)
@@ -30,11 +30,13 @@ class PersonNoNestingSerializer : JsonSerializer<Person> {
 
             var friends = JsonArray();
             p0.friends.forEach{ friends.add(it.handle) }
-
-            j.add("friends", friends)
+            if (!friends.isEmpty)
+                j.add("friends", friends)
 
             var posts = JsonArray();
-            p0.posts.forEach{ friends.add(it.id) }
+            p0.posts.forEach{ posts.add(it.id) }
+            if (!posts.isEmpty)
+                j.add("posts", posts)
         }
 
         return j

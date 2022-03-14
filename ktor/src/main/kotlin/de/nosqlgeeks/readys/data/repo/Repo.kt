@@ -127,9 +127,9 @@ class Repo : IRepo {
      */
     private fun createPostIndex() : Boolean {
         val schema = Schema()
-            .addTagField("$.by AS by")
-            .addNumericField("$.time AS time")
-            .addTextField("$.text AS text", 1.0)
+            .addTagField("$.by")
+            .addNumericField("$.time")
+            .addTextField("$.text", 1.0)
 
 
         return createIdx("idx:%s".format(postKey()), IndexDefinition(JSON).setPrefixes(postKey("")), schema)
@@ -166,11 +166,18 @@ class Repo : IRepo {
         val personJson = responseHelper.jsonToJson(result as JSONArray)[0]
         var person = g.fromJson(personJson, Person::class.java)
 
+        //Add the posts of the person
+        personJson.asJsonObject.get("posts")?.asJsonArray?.forEach {
+            val id = it.asString
+            val post = getPost(id, person)
+            person.posts.add(post)
+        }
+
         //Remember persons that were already processed, this allows us to terminate the recursion
         processedPersons.add(person)
 
         //Add all the friends, and the friends of the friends and so on
-        personJson.asJsonObject.get("friends").asJsonArray.forEach{
+        personJson.asJsonObject.get("friends")?.asJsonArray?.forEach{
 
             //The handle of the friend
             val friendHandle = it.asString
@@ -184,6 +191,7 @@ class Repo : IRepo {
 
             person.friends.add(friend)
         }
+
 
         return person
 
@@ -223,20 +231,68 @@ class Repo : IRepo {
         return persons
     }
 
+    /**
+     * Adds a post without checking if a referenced person is in the database
+     */
     override fun addPost(post: Post): Post {
-        TODO("Not yet implemented")
+        redis.jsonSet(postKey(post.id), Path2.ROOT_PATH, gson.toJson(post))
+        return post
     }
 
+    /**
+     * Gets a post and the referenced person
+     */
     override fun getPost(id: String): Post {
-        TODO("Not yet implemented")
+        return getPost(id, null)
     }
 
+    /**
+     * Added to avoid recursions when called from getPerson
+     */
+    private fun getPost(id: String,  by: Person?) : Post {
+
+        val result = redis.jsonGet(postKey(id), Path2.ROOT_PATH)
+        val postJson = responseHelper.jsonToJson(result as JSONArray)[0].asJsonObject
+        val post = g.fromJson(postJson, Post::class.java)
+
+        var person : Person
+
+        //Complete the person
+        if (by == null)
+            person = getPerson(post.by.handle)
+        else
+            person = by
+
+        post.by = person
+
+        return post
+    }
+
+    /**
+     * Simply deletes a post
+     */
     override fun delPost(id: String): Boolean {
-        TODO("Not yet implemented")
+        return (redis.del(postKey(id)) == 1L)
     }
 
-    override fun searchPosts(query: String) {
-        TODO("Not yet implemented")
+    /**
+     * Search for posts
+     */
+    override fun searchPosts(query: String) : Set<Post> {
+
+        val q = Query(query)
+        val docs = redis.ftSearch("idx:%s".format(postKey()), q)
+        val result = responseHelper.searchResultToJson(docs)
+
+        val posts = mutableSetOf<Post>()
+        result.getAsJsonArray("docs").forEach{
+            val json = it.asJsonObject.get("value").asJsonObject
+            val handle = json.get("by").asString
+            val time = json.get("time").asLong
+            posts.add(getPost(Post.genId(handle,time)))
+        }
+
+        return posts
     }
 
     override fun addClick(click: Click): Click {

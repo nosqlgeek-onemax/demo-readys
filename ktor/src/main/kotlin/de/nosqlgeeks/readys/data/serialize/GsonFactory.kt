@@ -1,8 +1,8 @@
 package de.nosqlgeeks.readys.data.serialize
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
 import de.nosqlgeeks.readys.data.model.Person
+import de.nosqlgeeks.readys.data.model.Post
 
 /**
  * Builds an instance of GSON that has all the serializers registered
@@ -26,8 +26,10 @@ class GsonFactory {
 
 
     init {
-        builder.registerTypeAdapter(Person::class.java, PersonNoNestingSerializer())
-        builder.registerTypeAdapter(Person::class.java, PersonEmptyRefDeSerializer())
+        builder.registerTypeAdapter(Person::class.java, PersonSerializer())
+        builder.registerTypeAdapter(Person::class.java, PersonDeSerializer())
+        builder.registerTypeAdapter(Post::class.java, PostSerializer())
+        builder.registerTypeAdapter(Post::class.java, PostDeSerializer())
     }
 
     /**
