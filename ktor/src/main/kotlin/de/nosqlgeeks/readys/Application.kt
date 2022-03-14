@@ -20,6 +20,7 @@ import io.ktor.server.plugins.*
  * IV.) IRepo.kt : Interfaces + Inheritance
  * V.) PersonTest.kt : Testing + Lambdas
  * VI.) Repo.kt : Type casting
+ * VII.) DataGenerator.kt : Object oriented vs. functional
  *
  *  ## RediSearch
  *

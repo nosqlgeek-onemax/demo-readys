@@ -6,6 +6,13 @@ import de.nosqlgeeks.readys.data.model.stats.Click
 import de.nosqlgeeks.readys.data.repo.Repo
 import java.util.Date
 
+/**
+ * VII.) Let's learn some Kotlin
+ *
+ * 1. This file doesn't contain any classes, but only functions.
+ * 2. Take a look at setOf(...).map(...)
+ *
+ */
 fun generatePersons(repo : Repo) : Person {
 
     val maggie = Person("Maggie", "Simpson", "maggie@simpsons.com", "maggie", Date(0))
