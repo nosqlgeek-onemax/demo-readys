@@ -4,9 +4,10 @@ import de.nosqlgeeks.readys.data.model.Person
 import de.nosqlgeeks.readys.data.model.Post
 import de.nosqlgeeks.readys.data.model.stats.Click
 import de.nosqlgeeks.readys.data.model.stats.Stats
+import de.nosqlgeeks.readys.data.repo.redisearch.QueryHelper
+import de.nosqlgeeks.readys.data.repo.redisearch.QueryHelper.QueryWrapper
 import de.nosqlgeeks.readys.data.repo.redisearch.ResponseHelper
 import de.nosqlgeeks.readys.data.serialize.GsonFactory
-import de.nosqlgeeks.readys.data.serialize.GsonFactory.Companion.g
 import org.json.JSONArray
 import redis.clients.jedis.*
 import redis.clients.jedis.exceptions.JedisDataException
@@ -17,6 +18,9 @@ import redis.clients.jedis.search.Schema.TextField
 import redis.clients.jedis.search.FieldName
 import redis.clients.jedis.search.Schema.Field
 import redis.clients.jedis.search.Schema.TagField
+import redis.clients.jedis.search.aggr.AggregationBuilder
+import redis.clients.jedis.search.aggr.Reducers
+import java.util.*
 import java.util.logging.Logger
 import java.util.logging.Level.*
 
@@ -41,6 +45,9 @@ import java.util.logging.Level.*
  *    queries that match one or multiple exact values.
  * 2. We can index on JSON and also on Hashes (similar to dictionaries in Redis). Our index here only considers
  *    Hashes that have a key with the prefix 'person:'
+ * 3. Take a look at the createClickIndex(). We are keeping those fields as sortable to support more efficient
+ *    range queries and groupings.
+ * 4. The 'queryStats' function also shows how RediSearch aggregations are working
  *
  */
 class Repo : IRepo {
@@ -49,7 +56,8 @@ class Repo : IRepo {
     private val logger = Logger.getLogger("repo")
     private val cfg : DBConfig
     private val gson = GsonFactory.g
-    private  val responseHelper = ResponseHelper()
+    private val responseHelper = ResponseHelper()
+    private val queryHelper = QueryHelper()
 
     var redis : UnifiedJedis
 
@@ -62,6 +70,7 @@ class Repo : IRepo {
         redis = JedisPooled(cfg.host, cfg.port, cfg.user, cfg.password)
         logger.log(INFO, "Person index created = %b".format(createPersonIndex()))
         logger.log(INFO, "Post index created = %b".format(createPostIndex()))
+        logger.log(INFO, "Click index created = %b".format(createStatsIndex()))
     }
 
 
@@ -83,6 +92,14 @@ class Repo : IRepo {
 
     private fun postKey(id: String? = null) : String {
         return key("post", id)
+    }
+
+    private fun clickKey(id : String? = null) : String {
+        return key("click", id)
+    }
+
+    private fun statsKey(id : String? = null) : String {
+        return key("stats", id)
     }
 
 
@@ -127,13 +144,26 @@ class Repo : IRepo {
      */
     private fun createPostIndex() : Boolean {
         val schema = Schema()
-            .addTagField("$.by")
-            .addNumericField("$.time")
-            .addTextField("$.text", 1.0)
-
+            .addField(TagField(FieldName("$.by", "by"),",",false))
+            .addField(Field(FieldName("$.time","time"),Schema.FieldType.NUMERIC,false, false))
+            .addField(TextField(FieldName("$.text", "text")))
 
         return createIdx("idx:%s".format(postKey()), IndexDefinition(JSON).setPrefixes(postKey("")), schema)
+    }
 
+    /**
+     * Index clicks
+     *
+     * We are using a flat structure here (HASH) for demo purposes. This would also work with JSON.
+     */
+    private fun createStatsIndex() : Boolean {
+        val schema = Schema()
+            .addSortableTagField("event", ",")
+            .addSortableNumericField("time")
+            .addSortableTagField("by", ",")
+            .addSortableTagField("postid", ",")
+
+        return createIdx("idx:%s".format(statsKey()), IndexDefinition(HASH).setPrefixes(clickKey("")), schema)
     }
 
 
@@ -164,7 +194,7 @@ class Repo : IRepo {
 
         //Jedis returns an instance of org.json.JSONArray, but I want to have Gson array
         val personJson = responseHelper.jsonToJson(result as JSONArray)[0]
-        var person = g.fromJson(personJson, Person::class.java)
+        var person = gson.fromJson(personJson, Person::class.java)
 
         //Add the posts of the person
         personJson.asJsonObject.get("posts")?.asJsonArray?.forEach {
@@ -252,7 +282,7 @@ class Repo : IRepo {
 
         val result = redis.jsonGet(postKey(id), Path2.ROOT_PATH)
         val postJson = responseHelper.jsonToJson(result as JSONArray)[0].asJsonObject
-        val post = g.fromJson(postJson, Post::class.java)
+        val post = gson.fromJson(postJson, Post::class.java)
 
         var person : Person
 
@@ -294,23 +324,79 @@ class Repo : IRepo {
         return posts
     }
 
+    /**
+     * Adds a click
+     *
+     * We aren't using JSON, so I am doing the serialization from a Click to a map directly in this function
+     */
     override fun addClick(click: Click): Click {
-        TODO("Not yet implemented")
+
+        var value = mutableMapOf<String, String>()
+        value.put("event", clickKey())
+        value.put("by", click.by)
+        value.put("postid", click.postid)
+        value.put("time",click.time.toString())
+
+        redis.hmset(clickKey(click.id), value)
+
+        return click
     }
 
+    /**
+     * Helper function that supports the other stats functions
+     */
+    fun queryStats(q : QueryWrapper) : Stats {
+
+        //Normal search
+        q.query.setSortBy("time",true)
+        val stats = Stats.EMPTY
+        val idxName = "idx:%s".format(statsKey())
+
+        redis.ftSearch(idxName, q.query).documents.forEach {
+
+            val time = it.get("time").toString().toLong()
+            val postid = it.get("postid").toString()
+            val by = it.get("by").toString()
+
+            stats.clicks.add(Click(time, by, postid))
+        }
+
+        stats.from = Date(stats.clicks.first().time)
+        stats.to = Date(stats.clicks.last().time)
+
+        //Aggregation
+        //FT.AGGREGATE idx:stats * GROUPBY 1 @event REDUCE count 0 AS count FILTER "@event =='click'"
+        stats.countClicks = redis.ftAggregate(idxName, AggregationBuilder(q.queryStr)
+            .groupBy("@event",Reducers.count().`as`("count"))
+            .filter("@event =='click'"))
+            .getRow(0).getLong("count")
+
+        //FT.AGGREGATE idx:stats * GROUPBY 2 @by @event REDUCE count 0 REDUCE count 0 FILTER "@event =='click'" GROUPBY 0 REDUCE count 0
+        stats.countUniqueClicks = redis.ftAggregate(idxName, AggregationBuilder(q.queryStr)
+            .groupBy(mutableSetOf("@by","@event"), mutableSetOf(Reducers.count()))
+            .filter("@event =='click'")
+            .groupBy(mutableSetOf(), mutableSetOf(Reducers.count().`as`("count"))))
+            .getRow(0).getLong("count")
+
+        return stats
+    }
+
+    /**
+     * Let's do a search by post id
+     */
     override fun getStatsByPost(id: String): Stats {
-        TODO("Not yet implemented")
+
+        val q = queryHelper.wrapQuery("@postid : {%s}".format(queryHelper.escapeFieldValue(id)))
+        return queryStats(q)
     }
 
     override fun getStatsByPerson(handle: String): Stats {
-        TODO("Not yet implemented")
+        val q = queryHelper.wrapQuery("@by : {%s}".format(handle))
+        return queryStats(q)
     }
 
     override fun getAllStats(): Stats {
-        TODO("Not yet implemented")
-    }
-
-    override fun flushStats(): Boolean {
-        TODO("Not yet implemented")
+        val q = queryHelper.wrapQuery("*")
+        return queryStats(q)
     }
 }

@@ -17,9 +17,8 @@ import java.util.zip.CRC32
  *
  * 2. Non-nullable types
  *
- * Kotlin tries to avoid null pointer exceptions. So there are nullable and non-nullable types. The default is
- * non-nullable. If you want to be able to assign null, then you need to call it out when declaring your variable.
- * The 'id' property in that example is nullable because the Base64 helper that I am using returns a nullable type.
+ * I replaced the initial Base64 id generator by something simpler, so please look at the PostSerializer to see an
+ * example of a nullable type.
  */
 
 

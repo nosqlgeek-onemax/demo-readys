@@ -36,5 +36,4 @@ interface IRepo {
     fun getStatsByPost(id : String) : Stats
     fun getStatsByPerson(handle : String) : Stats
     fun getAllStats() : Stats
-    fun flushStats() : Boolean
 }

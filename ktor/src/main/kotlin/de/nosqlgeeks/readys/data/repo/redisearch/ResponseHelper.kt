@@ -14,7 +14,6 @@ class ResponseHelper {
 
     private val gson = GsonFactory.f.create()
 
-
     /**
      * Helper that converts a JSONArray to a GSON JsonArray
      */
@@ -42,8 +41,6 @@ class ResponseHelper {
         result.add("score", gson.toJsonTree(d.score))
 
         //There is only one property ($) returned if RediSearch is used on JSON. The value is the string representation of a JSON object
-
-
         result.add("value", JsonParser.parseString(d.properties.find { it.key == "$" }?.value.toString()).asJsonObject)
 
         return result

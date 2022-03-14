@@ -2,6 +2,7 @@ package de.nosqlgeeks.readys.data.repo
 
 import de.nosqlgeeks.readys.data.model.Person
 import de.nosqlgeeks.readys.data.model.Post
+import de.nosqlgeeks.readys.data.model.stats.Click
 import de.nosqlgeeks.readys.data.serialize.GsonFactory
 import kotlin.test.*
 import redis.clients.jedis.Jedis
@@ -51,7 +52,7 @@ class RepoTest {
     }
 
     @Test
-    fun getPerson() {
+    fun testGetPerson() {
         println("-- testGetPerson")
 
         val david = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
@@ -80,7 +81,7 @@ class RepoTest {
     }
 
     @Test
-    fun getPersonRecursive() {
+    fun testGetPersonRecursive() {
 
         println("-- testGetPersonRecursive")
 
@@ -111,9 +112,9 @@ class RepoTest {
     }
 
     @Test
-    fun delPerson() {
+    fun testDelPerson() {
 
-        println("-- delPerson")
+        println("-- testDelPerson")
 
         val repo = Repo()
         val david = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
@@ -126,9 +127,9 @@ class RepoTest {
 
 
     @Test
-    fun searchPerson() {
+    fun testSearchPerson() {
 
-        println("-- searchPerson")
+        println("-- testSearchPerson")
 
         val repo = Repo()
         val kurt = Person("Kurt", "Moeller", "kurt.moellera@redis.com", "kurtfm", Date(0))
@@ -141,7 +142,9 @@ class RepoTest {
     }
 
     @Test
-    fun searchPost() {
+    fun testSearchPost() {
+
+        println("-- testSearchPost")
 
         //Prepare the objects
         val david = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
@@ -166,5 +169,56 @@ class RepoTest {
         assertEquals("david@nosqlgeeks.de", posts.elementAt(0).by.email)
 
         println(posts)
+    }
+
+    /**
+     * We are going to repurpose this one in two tests
+     */
+    fun addClick() : Post {
+
+        val nosqlgeek = Person("David", "Maier", "david@nosqlgeeks.de", "nosqlgeek", Date(0))
+        val elena = Person("Elena", "Kolevska", "elena.kolevska@redis.com", "elena_kolevska", Date(0))
+        val post = Post(nosqlgeek,Date(),"Kotlin is great, and it gets even better with Redis.")
+
+        val repo = Repo()
+        repo.addPerson(nosqlgeek)
+        repo.addPerson(elena)
+        repo.addPost(post)
+
+        Thread.sleep(100)
+        val timeClicked = Date().time
+        val click = Click(timeClicked,elena.handle, post.id)
+        repo.addClick(click)
+        val clickKey = "click:elena_kolevska:%d".format(timeClicked)
+        assertTrue(con.exists(clickKey))
+        println(con.hgetAll(clickKey))
+
+        return post
+    }
+
+    @Test
+    fun testAddClickt() {
+        println("-- testAddClick")
+        addClick()
+    }
+
+    @Test
+    fun testGetStatsByPost() {
+        println("-- testGetStatsByPost")
+        val post = addClick()
+        Thread.sleep(100)
+        val click = Click(Date().time,"user", post.id)
+        Thread.sleep(100)
+        val click2 = Click(Date().time,"user", post.id)
+
+        val repo = Repo()
+        repo.addClick(click)
+        repo.addClick(click2)
+
+        val stats = repo.getStatsByPost(post.id)
+        assertEquals(3, stats.countClicks)
+        assertEquals(2, stats.countUniqueClicks)
+
+        println(stats)
     }
 }
