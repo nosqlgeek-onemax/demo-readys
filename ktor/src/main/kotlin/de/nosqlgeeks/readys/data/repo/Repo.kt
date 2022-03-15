@@ -9,6 +9,7 @@ import de.nosqlgeeks.readys.data.repo.redisearch.QueryHelper.QueryWrapper
 import de.nosqlgeeks.readys.data.repo.redisearch.ResponseHelper
 import de.nosqlgeeks.readys.data.serialize.GsonFactory
 import org.json.JSONArray
+import org.json.JSONObject
 import redis.clients.jedis.*
 import redis.clients.jedis.exceptions.JedisDataException
 import redis.clients.jedis.json.Path2
@@ -190,11 +191,11 @@ class Repo : IRepo {
      */
     fun getPerson(handle: String, processedPersons : MutableSet<Person>) : Person {
 
-        val result = redis.jsonGet(personKey(handle), Path2.ROOT_PATH)
+        val result = redis.jsonGet(personKey(handle), Path2.ROOT_PATH) ?: throw Exception("No such person %s.".format(handle))
 
         //Jedis returns an instance of org.json.JSONArray, but I want to have Gson array
         val personJson = responseHelper.jsonToJson(result as JSONArray)[0]
-        var person = gson.fromJson(personJson, Person::class.java)
+        val person = gson.fromJson(personJson, Person::class.java)
 
         //Add the posts of the person
         personJson.asJsonObject.get("posts")?.asJsonArray?.forEach {
@@ -280,7 +281,8 @@ class Repo : IRepo {
      */
     private fun getPost(id: String,  by: Person?) : Post {
 
-        val result = redis.jsonGet(postKey(id), Path2.ROOT_PATH)
+        val result = redis.jsonGet(postKey(id), Path2.ROOT_PATH) ?: throw Exception("No such post %s.".format(id))
+
         val postJson = responseHelper.jsonToJson(result as JSONArray)[0].asJsonObject
         val post = gson.fromJson(postJson, Post::class.java)
 

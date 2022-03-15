@@ -20,8 +20,8 @@ fun Route.post() {
 
         try {
             call.respond(repo.getPost(id!!))
-        } catch (e : java.lang.Exception) {
-            call.response.status(HttpStatusCode.NotFound)
+        } catch (e : Exception) {
+            call.respond(HttpStatusCode.NotFound, e.message.toString())
         }
     }
 

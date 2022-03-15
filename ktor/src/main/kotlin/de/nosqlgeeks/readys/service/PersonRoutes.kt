@@ -20,8 +20,8 @@ fun Route.person() {
 
         try {
             call.respond(repo.getPerson(handle!!))
-        } catch (e : java.lang.Exception) {
-            call.response.status(HttpStatusCode.NotFound)
+        } catch (e : Exception) {
+            call.respond(HttpStatusCode.NotFound, e.message.toString())
         }
     }
 
