@@ -30,7 +30,7 @@ fun Route.person() {
 
         try {
             call.respond(repo.searchPersons(query!!))
-        } catch (e : java.lang.Exception) {
+        } catch (e : Exception) {
             call.respond(setOf<Person>())
         }
     }

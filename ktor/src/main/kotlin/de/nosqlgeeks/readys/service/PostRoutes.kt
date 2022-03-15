@@ -31,7 +31,7 @@ fun Route.post() {
 
         try {
             call.respond(repo.searchPosts(query!!))
-        } catch (e : java.lang.Exception) {
+        } catch (e : Exception) {
             call.respond(setOf<Person>())
         }
     }
