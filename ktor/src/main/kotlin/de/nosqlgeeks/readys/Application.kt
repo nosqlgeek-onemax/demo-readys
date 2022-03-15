@@ -4,13 +4,10 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import de.nosqlgeeks.readys.plugins.configureRouting
 import de.nosqlgeeks.readys.plugins.configureSerialization
-import io.ktor.server.application.*
-import io.ktor.server.plugins.*
-import io.ktor.server.plugins.*
 
 
 /**
- * ## Learning Index
+ * ## TOC
  *
  * ### Kotlin
  * 0.) Application.kt : Project setup
@@ -22,11 +19,12 @@ import io.ktor.server.plugins.*
  * VI.) Repo.kt : Type casting
  * VII.) DataGenerator.kt : Object oriented vs. functional
  *
- *  ## RediSearch
+ *  ### RediSearch
  *
- *  I.) Repo.kt - Creating an index + JSON support
- *  II.) Person*(De)Serializer - (De)Serialization basics
- *  III.) TODO
+ *  I.) Repo.kt : Creating an index + JSON support
+ *  II.) Person*(De)Serializer : (De)Serialization basics
+ *  III.) Repo.kt : Querying basics
+ *  IV.) Repo.kt : Aggregation basics
  *  
  *
  * ## 0.) Let's learn some Kotlin

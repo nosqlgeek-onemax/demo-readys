@@ -4,7 +4,6 @@ import de.nosqlgeeks.readys.service.person
 import de.nosqlgeeks.readys.service.post
 import io.ktor.server.routing.*
 import io.ktor.server.application.*
-import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
 
@@ -15,5 +14,6 @@ fun Application.configureRouting() {
         hello()
         person()
         post()
+        //TODO: stats()
     }
 }
