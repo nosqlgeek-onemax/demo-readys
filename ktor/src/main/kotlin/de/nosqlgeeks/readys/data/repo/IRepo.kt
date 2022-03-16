@@ -21,6 +21,7 @@ interface IRepo {
 
     //Persons
     fun addPerson(person : Person) : Person
+    fun updatePerson(person : Person) : Person
     fun getPerson(handle : String) : Person
     fun delPerson(handle : String) : Boolean
     fun searchPersons(query : String) : Set<Person>

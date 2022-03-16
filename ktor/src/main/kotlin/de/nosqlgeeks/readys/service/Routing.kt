@@ -11,7 +11,7 @@ fun Application.configureRouting() {
     log.info("Configuring routing ...")
 
     routing {
-        hello()
+        index()
         person()
         post()
         //TODO: stats()

@@ -40,25 +40,6 @@ class GsonFactory {
     }
 
     /**
-     * Returns a JSON string
-     */
-    /*
-    fun toJSONStr(input : Any) : String {
-
-        return create().toJson(input)
-    }
-    */
-
-    /**
-     * Returns a JSON Element
-     */
-    /*
-    fun toJSON(input : Any) : JsonElement {
-        return create().toJsonTree(input)
-    }
-     */
-
-    /**
      * Implements a singleton of the factory
      */
     companion object {

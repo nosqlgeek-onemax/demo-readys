@@ -9,7 +9,6 @@ import de.nosqlgeeks.readys.data.repo.redisearch.QueryHelper.QueryWrapper
 import de.nosqlgeeks.readys.data.repo.redisearch.ResponseHelper
 import de.nosqlgeeks.readys.data.serialize.GsonFactory
 import org.json.JSONArray
-import org.json.JSONObject
 import redis.clients.jedis.*
 import redis.clients.jedis.exceptions.JedisDataException
 import redis.clients.jedis.json.Path2
@@ -176,6 +175,13 @@ class Repo : IRepo {
         //Hint: Using Path2.ROOT_PATH skips the built-in serialization and gives us more control
         redis.jsonSet(personKey(person.handle), Path2.ROOT_PATH, gson.toJson(person))
         return person
+    }
+
+    /**
+     * json.set should be good enough for creating or updating
+     */
+    override fun updatePerson(person: Person): Person {
+        return addPerson(person)
     }
 
     /**
